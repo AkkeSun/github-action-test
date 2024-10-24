@@ -35,12 +35,23 @@ jobs:
       - name: Build
         run: ./gradlew clean build
 
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: artifact
+          path: build/libs/*.jar
+
   deploy:
     runs-on: ubuntu-latest
     needs: build
     if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev'
 
     steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: artifact
+
       - name: Deploy Master-01
         if: github.ref == 'refs/heads/master'
         env:
@@ -50,7 +61,7 @@ jobs:
           PASSWORD: Stracker!^18
         run: |
           sudo apt-get install -y sshpass 
-          sshpass -p "Stracker!^18" scp -o StrictHostKeyChecking=no -P "22" build/libs/*.jar "od@158.179.167.191:/home/od/application"
+          sshpass -p "Stracker!^18" scp -o StrictHostKeyChecking=no -P "22" *.jar "od@158.179.167.191:/home/od/application"
           sshpass -p "Stracker!^18" ssh -o StrictHostKeyChecking=no -p "22" "od@158.179.167.191" "cd /home/od/application && ./service.sh stop"
           sleep 2
           sshpass -p "Stracker!^18" ssh -o StrictHostKeyChecking=no -p "22" "od@158.179.167.191" "cd /home/od/application && ./service.sh start"
@@ -65,7 +76,7 @@ jobs:
           PASSWORD: ${{ secrets.DEV_PASSWORD }}
         run: |
           sudo apt-get install -y sshpass 
-          sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" build/libs/*.jar "$USERNAME@$IP:/home/od/application"
+          sshpass -p "Stracker!^18" scp -o StrictHostKeyChecking=no -P "22" *.jar "od@158.179.167.191:/home/od/application"
           sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh stop"
           sleep 2
           sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh start"
