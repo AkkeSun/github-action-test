@@ -74,7 +74,7 @@ jobs:
           PASSWORD: ${{ secrets.DEV_PASSWORD }}
         run: |
           sudo apt-get install -y sshpass 
-          sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no -P "22" *.jar "od@158.179.167.191:/home/od/application"
+          sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" *.jar "$USERNAME@$IP:/home/od/application"
           sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh stop"
           sleep 2
           sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh start"
@@ -117,16 +117,12 @@ jobs:
     needs: [build, deploy]
 
     steps:
-      - name: Notify Slack on Failure
-        if: failure()
-        run: |
-          curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "Deployment failed on branch: ${{ github.ref }}. Please check the logs."
-          }' ${{ secrets.SLACK_WEBHOOK_URL }}
-
-      - name: Notify Slack on Success
-        if: success()
-        run: |
-          curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "Deployment succeeded on branch: ${{ github.ref }}. All steps completed successfully."
-          }' ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: action-slack
+        uses: 8398a7/action-slack@v3
+        with:
+            status: ${{ job.status }}
+            author_name: Github Action Test # default: 8398a7@action-slack
+            fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+        env:
+            SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: always()
