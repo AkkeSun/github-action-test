@@ -59,10 +59,10 @@ jobs:
           PASSWORD: ${{ secrets.PROD_PASSWORD }}
         run: |
           sudo apt-get install -y sshpass 
-          sshpass -p "Stracker!^18" scp -o StrictHostKeyChecking=no -P "22" *.jar "od@158.179.167.191:/home/od/application"
-          sshpass -p "Stracker!^18" ssh -o StrictHostKeyChecking=no -p "22" "od@158.179.167.191" "cd /home/od/application && ./service.sh stop"
+          sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" *.jar "$USERNAME@$IP:/home/od/application"
+          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh stop"
           sleep 2
-          sshpass -p "Stracker!^18" ssh -o StrictHostKeyChecking=no -p "22" "od@158.179.167.191" "cd /home/od/application && ./service.sh start"
+          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh start"
           sleep 10
 
       - name: Deploy Dev
