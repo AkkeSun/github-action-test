@@ -48,7 +48,7 @@ jobs:
           USERNAME: ${{ secrets.PROD_USERNAME }}
           PASSWORD: ${{ secrets.PROD_PASSWORD }}
         run: |
-          sudo apt-get install -y sshpass 
+          apt-get install -y sshpass 
           sshpass -p "PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" build/libs/*.jar "$USERNAME@$IP:/home/od/application/"
 
       - name: [Dev] deploy
@@ -59,7 +59,7 @@ jobs:
           USERNAME: ${{ secrets.DEV_USERNAME }}
           PASSWORD: ${{ secrets.DEV_PASSWORD }}
         run: |
-          sudo apt-get install -y sshpass 
+          apt-get install -y sshpass 
           sshpass -p "PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" build/libs/*.jar "$USERNAME@$IP:/home/od/application/"
 
     service-restart:
