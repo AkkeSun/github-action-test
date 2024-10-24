@@ -46,10 +46,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - name: Download sshpass
+        run: sudo apt-get install -y sshpass
+
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
          name: artifact
+
       - name: Master-01 Deploy
         if: github.ref == 'refs/heads/master'
         env:
@@ -57,13 +61,7 @@ jobs:
           PORT: ${{ secrets.PROD_01_PORT }}
           USERNAME: ${{ secrets.PROD_USERNAME }}
           PASSWORD: ${{ secrets.PROD_PASSWORD }}
-        run: |
-          sudo apt-get install -y sshpass 
-          sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" *.jar "$USERNAME@$IP:/home/od/application"
-          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh stop"
-          sleep 2
-          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh start"
-          sleep 10
+        run: sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" *.jar "$USERNAME@$IP:/home/od/application"
 
       - name: Dev Deploy
         if: github.ref == 'refs/heads/dev'
@@ -72,18 +70,12 @@ jobs:
           PORT: ${{ secrets.DEV_PORT }}
           USERNAME: ${{ secrets.DEV_USERNAME }}
           PASSWORD: ${{ secrets.DEV_PASSWORD }}
-        run: |
-          sudo apt-get install -y sshpass 
-          sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" *.jar "$USERNAME@$IP:/home/od/application"
-          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh stop"
-          sleep 2
-          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh start"
-          sleep 10
+        run: sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" *.jar "$USERNAME@$IP:/home/od/application"
 
   ################### service-restart ###################
   service-restart:
     runs-on: ubuntu-latest
-    needs: build
+    needs: deploy
     steps:
       - name: Master-01 service restart
         if: github.ref == 'refs/heads/master'
@@ -130,7 +122,7 @@ jobs:
   ################### notification ###################
   notification:
     runs-on: ubuntu-latest
-    needs: [build, deploy, health-check]
+    needs: [build, deploy, service-restart]
     steps:
       - name: Slack Notification
         uses: 8398a7/action-slack@v3
