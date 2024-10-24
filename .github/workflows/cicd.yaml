@@ -50,7 +50,7 @@ jobs:
           PASSWORD: Stracker!^18
         run: |
           sudo apt-get install -y sshpass 
-          sshpass -p "PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" build/libs/*.jar "$USERNAME@$IP:/home/od/application"
+          sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" build/libs/*.jar "$USERNAME@$IP:/home/od/application"
           sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh stop"
           sleep 2
           sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh start"
@@ -65,7 +65,7 @@ jobs:
           PASSWORD: ${{ secrets.DEV_PASSWORD }}
         run: |
           sudo apt-get install -y sshpass 
-          sshpass -p "PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" build/libs/*.jar "$USERNAME@$IP:/home/od/application"
+          sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" build/libs/*.jar "$USERNAME@$IP:/home/od/application"
           sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh stop"
           sleep 2
           sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh start"
