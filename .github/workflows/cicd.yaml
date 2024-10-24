@@ -38,10 +38,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev'
 
     steps:
-      - name: Deploy Master-01
+      - name: [Master-01] deploy
         if: github.ref == 'refs/heads/master'
         env:
           IP: ${{ secrets.PROD_01_IP }}
@@ -50,13 +49,9 @@ jobs:
           PASSWORD: ${{ secrets.PROD_PASSWORD }}
         run: |
           sudo apt-get install -y sshpass 
-          sshpass -p "PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" build/libs/*.jar "$USERNAME@$IP:/data/application/"
-          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /data/application && ./service.sh stop"
-          sleep 2
-          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /data/application && ./service.sh start"
-          sleep 10
+          sshpass -p "PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" build/libs/*.jar "$USERNAME@$IP:/home/od/application/"
 
-      - name: Deploy Dev
+      - name: [Dev] deploy
         if: github.ref == 'refs/heads/dev'
         env:
           IP: ${{ secrets.DEV_IP }}
@@ -64,53 +59,68 @@ jobs:
           USERNAME: ${{ secrets.DEV_USERNAME }}
           PASSWORD: ${{ secrets.DEV_PASSWORD }}
         run: |
-          sshpass -p "PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" build/libs/*.jar "$USERNAME@$IP:/data/application/"
-          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /data/application && ./service.sh stop"
-          sleep 2
-          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /data/application && ./service.sh start"
-          sleep 10
+          sudo apt-get install -y sshpass 
+          sshpass -p "PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" build/libs/*.jar "$USERNAME@$IP:/home/od/application/"
 
-      - name: Service Check Master-01
-        if: github.ref == 'refs/heads/master'
-        env:
-          IP: ${{ secrets.PROD_01_IP }}
-          PORT: ${{ secrets.PROD_01_PORT }}
-          USERNAME: ${{ secrets.PROD_USERNAME }}
-          PASSWORD: ${{ secrets.PROD_PASSWORD }}
-        run: |
-          response_code=$(sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "curl -s -o /dev/null -w '%{http_code}' http://localhost:9091/startUp")
-          if [ "$response_code" -eq 200 ]; then
-            echo "API responded with 200 OK"
-          else
-            echo "API did not respond with 200, response code: $response_code"
-            exit 1
-          fi
+    service-restart:
+      runs-on: ubuntu-latest
+      needs: deploy
 
-      - name: Service Check Dev
-        if: github.ref == 'refs/heads/dev'
-        env:
-          IP: ${{ secrets.PROD_01_IP }}
-          PORT: ${{ secrets.PROD_01_PORT }}
-          USERNAME: ${{ secrets.PROD_USERNAME }}
-          PASSWORD: ${{ secrets.PROD_PASSWORD }}
-        run: |
-          response_code=$(sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "curl -s -o /dev/null -w '%{http_code}' http://localhost:9091/startUp")
-          if [ "$response_code" -eq 200 ]; then
-            echo "API responded with 200 OK"
-          else
-            echo "API did not respond with 200, response code: $response_code"
-            exit 1
-          fi
+      steps:
+        - name: [Master-01] service restart
+          if: github.ref == 'refs/heads/master'
+          env:
+            IP: ${{ secrets.PROD_01_IP }}
+            PORT: ${{ secrets.PROD_01_PORT }}
+            USERNAME: ${{ secrets.PROD_USERNAME }}
+            PASSWORD: ${{ secrets.PROD_PASSWORD }}
+          run: |
+            sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh stop"
+            sleep 2
+            sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh start"
+            sleep 10
+            
+            response_code=$(sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "curl -s -o /dev/null -w '%{http_code}' http://localhost:9091/startUp")
+            if [ "$response_code" -eq 200 ]; then
+              echo "API responded with 200 OK"
+            else
+              echo "API did not respond with 200, response code: $response_code"
+              exit 1
+            fi
 
-      - name: Notify Slack on Failure
+        - name: Deploy Dev
+          if: github.ref == 'refs/heads/dev'
+          env:
+            IP: ${{ secrets.DEV_IP }}
+            PORT: ${{ secrets.DEV_PORT }}
+            USERNAME: ${{ secrets.DEV_USERNAME }}
+            PASSWORD: ${{ secrets.DEV_PASSWORD }}
+          run: |
+            sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /data/application && ./service.sh stop"
+            sleep 2
+            sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /data/application && ./service.sh start"
+            sleep 10
+            
+            response_code=$(sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "curl -s -o /dev/null -w '%{http_code}' http://localhost:9091/startUp")
+            if [ "$response_code" -eq 200 ]; then
+              echo "API responded with 200 OK"
+            else
+              echo "API did not respond with 200, response code: $response_code"
+              exit 1
+            fi
+              
+
+    Notification:
+      - runs-on: ubuntu-latest
+
+      - name: Notification Failure
         if: failure()
         run: |
           curl -X POST -H 'Content-type: application/json' --data '{
             "text": "Deployment failed on branch: ${{ github.ref }}. Please check the logs."
           }' ${{ secrets.SLACK_WEBHOOK_URL }}
 
-
-      - name: Notify Slack on Success
+      - name: Notification Success
         if: success()
         run: |
           curl -X POST -H 'Content-type: application/json' --data '{
