@@ -29,11 +29,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
-
       - name: Build
-        run: ./gradlew clean build
+        run: |
+          chmod +x ./gradlew
+          ./gradlew clean build
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
@@ -44,7 +43,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev'
 
     steps:
       - name: Download artifact
@@ -55,10 +53,10 @@ jobs:
       - name: Deploy Master-01
         if: github.ref == 'refs/heads/master'
         env:
-          IP: 158.179.167.191
-          PORT: 22
-          USERNAME: od
-          PASSWORD: Stracker!^18
+          IP: ${{ secrets.PROD_01_IP }}
+          PORT: ${{ secrets.PROD__01_PORT }}
+          USERNAME: ${{ secrets.PROD_USERNAME }}
+          PASSWORD: ${{ secrets.PROD_PASSWORD }}
         run: |
           sudo apt-get install -y sshpass 
           sshpass -p "Stracker!^18" scp -o StrictHostKeyChecking=no -P "22" *.jar "od@158.179.167.191:/home/od/application"
@@ -76,7 +74,7 @@ jobs:
           PASSWORD: ${{ secrets.DEV_PASSWORD }}
         run: |
           sudo apt-get install -y sshpass 
-          sshpass -p "Stracker!^18" scp -o StrictHostKeyChecking=no -P "22" *.jar "od@158.179.167.191:/home/od/application"
+          sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no -P "22" *.jar "od@158.179.167.191:/home/od/application"
           sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh stop"
           sleep 2
           sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh start"
@@ -116,7 +114,7 @@ jobs:
 
   Notification:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev'
+    needs: [build, deploy]
 
     steps:
       - name: Notify Slack on Failure
