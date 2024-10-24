@@ -44,14 +44,11 @@ jobs:
       - name: Deploy Master-01
         if: github.ref == 'refs/heads/master'
         env:
-          IP: ${{ secrets.PROD_01_IP }}
-          PORT: ${{ secrets.PROD_01_PORT }}
-          USERNAME: ${{ secrets.PROD_USERNAME }}
-          PASSWORD: ${{ secrets.PROD_PASSWORD }}
+          IP: 158.179.167.191
+          PORT: 22
+          USERNAME: od
+          PASSWORD: Stracker!^18
         run: |
-          echo $IP:$PORT
-          echo $USERNAME
-          echo $PASSWORD
           sudo apt-get install -y sshpass 
           sshpass -p "PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" build/libs/*.jar "$USERNAME@$IP:/home/od/application"
           sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh stop"
