@@ -54,7 +54,7 @@ jobs:
         if: github.ref == 'refs/heads/master'
         env:
           IP: ${{ secrets.PROD_01_IP }}
-          PORT: ${{ secrets.PROD__01_PORT }}
+          PORT: ${{ secrets.PROD_01_PORT }}
           USERNAME: ${{ secrets.PROD_USERNAME }}
           PASSWORD: ${{ secrets.PROD_PASSWORD }}
         run: |
