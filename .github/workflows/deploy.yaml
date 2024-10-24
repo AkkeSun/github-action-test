@@ -7,7 +7,7 @@ on:
       - dev
 
 jobs:
-
+  ################### build ###################
   build:
     runs-on: ubuntu-latest # github actions 실행 가상환경 설정
     steps:
@@ -41,7 +41,7 @@ jobs:
           name: artifact
           path: build/libs/*.jar
 
-
+  ################### deploy ###################
   deploy:
     runs-on: ubuntu-latest
     needs: build
@@ -50,7 +50,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
          name: artifact
-      - name: [Master-01] Deploy
+      - name: Master-01 Deploy
         if: github.ref == 'refs/heads/master'
         env:
           IP: ${{ secrets.PROD_01_IP }}
@@ -65,7 +65,7 @@ jobs:
           sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh start"
           sleep 10
 
-      - name: [Dev] Deploy
+      - name: Dev Deploy
         if: github.ref == 'refs/heads/dev'
         env:
           IP: ${{ secrets.DEV_IP }}
@@ -80,13 +80,12 @@ jobs:
           sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh start"
           sleep 10
 
-
-  health-check:
+  ################### service-restart ###################
+  service-restart:
     runs-on: ubuntu-latest
-    needs: deploy
+    needs: build
     steps:
-
-      - name: [Master-01] health check
+      - name: Master-01 service restart
         if: github.ref == 'refs/heads/master'
         env:
           IP: ${{ secrets.PROD_01_IP }}
@@ -94,6 +93,11 @@ jobs:
           USERNAME: ${{ secrets.PROD_USERNAME }}
           PASSWORD: ${{ secrets.PROD_PASSWORD }}
         run: |
+          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh stop"
+          sleep 2
+          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh start"
+          sleep 10
+          
           response_code=$(sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "curl -s -o /dev/null -w '%{http_code}' http://localhost:9091/startUp")
           if [ "$response_code" -eq 200 ]; then
             echo "API responded with 200 OK"
@@ -102,14 +106,19 @@ jobs:
             exit 1
           fi
 
-      - name: [Dev] health check
+      - name: Dev service restart
         if: github.ref == 'refs/heads/dev'
         env:
-          IP: ${{ secrets.PROD_01_IP }}
-          PORT: ${{ secrets.PROD_01_PORT }}
-          USERNAME: ${{ secrets.PROD_USERNAME }}
-          PASSWORD: ${{ secrets.PROD_PASSWORD }}
+          IP: ${{ secrets.DEV_IP }}
+          PORT: ${{ secrets.DEV_PORT }}
+          USERNAME: ${{ secrets.DEV_USERNAME }}
+          PASSWORD: ${{ secrets.DEV_PASSWORD }}
         run: |
+          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh stop"
+          sleep 2
+          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh start"
+          sleep 10
+          
           response_code=$(sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "curl -s -o /dev/null -w '%{http_code}' http://localhost:9091/startUp")
           if [ "$response_code" -eq 200 ]; then
             echo "API responded with 200 OK"
@@ -118,6 +127,7 @@ jobs:
             exit 1
           fi
 
+  ################### notification ###################
   notification:
     runs-on: ubuntu-latest
     needs: [build, deploy, health-check]
