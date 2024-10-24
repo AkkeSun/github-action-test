@@ -50,10 +50,10 @@ jobs:
           PASSWORD: Stracker!^18
         run: |
           sudo apt-get install -y sshpass 
-          sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no -P "$PORT" build/libs/*.jar "$USERNAME@$IP:/home/od/application"
-          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh stop"
+          sshpass -p "Stracker!^18" scp -o StrictHostKeyChecking=no -P "22" build/libs/*.jar "od@158.179.167.191:/home/od/application"
+          sshpass -p "Stracker!^18" ssh -o StrictHostKeyChecking=no -p "22" "od@158.179.167.191" "cd /home/od/application && ./service.sh stop"
           sleep 2
-          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USERNAME@$IP" "cd /home/od/application && ./service.sh start"
+          sshpass -p "Stracker!^18" ssh -o StrictHostKeyChecking=no -p "22" "od@158.179.167.191" "cd /home/od/application && ./service.sh start"
           sleep 10
 
       - name: Deploy Dev
