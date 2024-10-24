@@ -49,8 +49,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          name: artifact
-
+         name: artifact
       - name: [Master-01] Deploy
         if: github.ref == 'refs/heads/master'
         env:
